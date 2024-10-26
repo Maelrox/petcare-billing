@@ -1,0 +1,48 @@
+# Spring Boot
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE/Editor specific
+.idea/
+*.iml
+*.ipr
+*.iws
+*.classpath
+*.project
+*.settings/
+.vscode/
+
+# Logs
+logs/
+*.log
+*.log.*
+*.access
+
+# Maven
+mvnw
+mvnw.cmd
+.mvn/
+.gradle/
+
+# Gradle
+gradle/
+build/
+
+# Dependencies
+/bin/
+/build/
+/release/
+
+# Test reports
+/test-output/
+
+# Docker
+docker-compose.yml
+
+# Application properties
+/src/main/resources/application.yml
+/src/main/resources/application.properties
+
+# OS-specific files
+.DS_Store
+Thumbs.db

@@ -12,30 +12,33 @@ import org.springframework.stereotype.Component
 @Component
 class BillingRepositoryAdapter(
     private val jpaBillingRepository: JpaBillingRepository,
-    private val ownerMapper: BillingEntityMapper
+    private val billingMapper: BillingEntityMapper
 ) : BillingPersistencePort {
 
     override fun findById(inventoryId: Long): Billing {
         val ownerEntity = jpaBillingRepository.findById(inventoryId)
             .orElseThrow { EntityNotFoundException("Inventory with id $inventoryId not found") }
-        return ownerMapper.toDomain(ownerEntity)
+        return billingMapper.toDomain(ownerEntity)
     }
 
     override fun update(billing: Billing): Billing {
-        val inventoryEntity = ownerMapper.toEntity(billing)
-        jpaBillingRepository.save(inventoryEntity)
-        return ownerMapper.toDomain(inventoryEntity)
+        val billingEntity = billingMapper.toEntity(billing)
+        jpaBillingRepository.save(billingEntity)
+        return billingMapper.toDomain(billingEntity)
     }
 
     override fun save(billing: Billing): Billing {
-        val inventoryEntity = ownerMapper.toEntity(billing)
-        jpaBillingRepository.save(inventoryEntity)
-        return ownerMapper.toDomain(inventoryEntity)
+        val billingEntity = billingMapper.toEntity(billing)
+        billingEntity.billingDetails.forEach { detail ->
+            detail.billing = billingEntity
+        }
+        jpaBillingRepository.save(billingEntity)
+        return billingMapper.toDomain(billingEntity)
     }
 
     override fun findAllByFilterPaginated(filter: Billing, pageable: Pageable): Page<Billing> {
         val pagedRolesEntity = jpaBillingRepository.findAllByFilter(filter, pageable)
-        return pagedRolesEntity.map { ownerMapper.toDomain(it) }
+        return pagedRolesEntity.map { billingMapper.toDomain(it) }
     }
 
 }

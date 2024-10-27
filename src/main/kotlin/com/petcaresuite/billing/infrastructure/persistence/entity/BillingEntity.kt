@@ -25,7 +25,7 @@ data class BillingEntity(
     val transactionDate: LocalDateTime? = LocalDateTime.now(),
 
     @OneToMany(mappedBy = "billing", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    val billingDetails: List<BillingDetailEntity> = emptyList(),
+    val billingDetails: MutableList<BillingDetailEntity> = mutableListOf(),
 
     @Column(name = "company_id")
     val companyId: Long,

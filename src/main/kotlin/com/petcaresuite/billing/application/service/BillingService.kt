@@ -14,12 +14,10 @@ import jakarta.persistence.EntityNotFoundException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.retry.RetryPolicy
-import org.springframework.retry.backoff.ExponentialBackOffPolicy
 import org.springframework.retry.policy.SimpleRetryPolicy
 import org.springframework.retry.support.RetryTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 
@@ -35,8 +33,9 @@ class BillingService(
         billingDTO.ownerId = billingDTO.owner.ownerId
         billingDTO.transactionDate = LocalDateTime.now().toString()
         billingDTO.transactionType = "BILL"
+        billingDTO.trxId = UUID.randomUUID().toString()
         billingMessageProducerPort.sendBillingMessage(billingDTO)
-        return ResponseDTO(message = Responses.BILLING_CREATED)
+        return ResponseDTO(message = Responses.BILLING_CREATED, trxId = billingDTO.trxId)
     }
 
     override fun update(billingDTO: BillingDTO): ResponseDTO? {
@@ -44,7 +43,7 @@ class BillingService(
         billingPersistencePort.findById(billingDTO.billingId!!)
         billingPersistencePort.update(billing)
         billingMessageProducerPort.sendBillingMessage(billingDTO)
-        return ResponseDTO(message = Responses.BILLING_UPDATED)
+        return ResponseDTO(message = Responses.BILLING_UPDATED, trxId = billingDTO.trxId)
     }
 
     override fun getAllByFilterPaginated(filterDTO: BillingFilterDTO, pageable: Pageable): Page<BillingDTO> {
@@ -56,54 +55,52 @@ class BillingService(
 
     @Transactional
     override fun processBilling(billingDTO: BillingDTO): ResponseDTO {
-        val inventories = billingDTO.billingDetails?.map { billingDetail ->
-            InventoryDTO(inventoryId = billingDetail.inventoryId)
-        }
+        val inventories = billingDTO.billingDetails
+            ?.filter { billingDetail -> billingDetail.inventoryId != null }
+            ?.map { billingDetail ->
+                InventoryDTO(
+                    inventoryId = billingDetail.inventoryId,
+                    name = billingDetail.name,
+                    description = billingDetail.description,
+                    quantity = billingDetail.quantity,
+                    price = billingDetail.amount,
+                    companyId = billingDTO.companyId
+                )
+            } ?: emptyList()
 
         val retryTemplate = RetryTemplate().apply {
             setRetryPolicy(customRetryPolicy())
         }
-
-        val inventoryResponse = retryTemplate.execute<ResponseDTO, Exception> {
-            try {
-                inventoryClient.update(inventories!!, billingDTO.authorization!!)
-            } catch (e: FeignException.Conflict) {
-                when {
-                    e.message?.contains("Resource locked") == true -> {
-                        throw LockAcquisitionException("Resource is currently locked")
-                    }
-                    else -> {
-                        throw InsufficientInventoryException("Inventory not available")
+        inventories.isNotEmpty().let {
+            val inventoryResponse = retryTemplate.execute<ResponseDTO, Exception> {
+                try {
+                    inventoryClient.update(inventories, billingDTO.authorization!!)
+                } catch (e: FeignException.Conflict) {
+                    when {
+                        e.message?.contains("Resource locked") == true -> {
+                            throw LockAcquisitionException("Resource is currently locked")
+                        }
+                        else -> {
+                            throw InsufficientInventoryException("Inventory not available")
+                        }
                     }
                 }
             }
+            if (!inventoryResponse.success!!) {
+                throw RuntimeException("Failed to update inventory: ${inventoryResponse.message}")
+            }
         }
-
-        if (!inventoryResponse.success!!) {
-            throw RuntimeException("Failed to update inventory: ${inventoryResponse.message}")
-        }
-
         try {
             val billing = billingMapper.toDomain(billingDTO)
+            billing.transactionDate = LocalDateTime.now()
+            billing.transactionType = "BILL"
             billingPersistencePort.save(billing)
-            return ResponseDTO(message = Responses.BILLING_CREATED)
+            return ResponseDTO(message = Responses.BILLING_CREATED, trxId = billingDTO.trxId)
         } catch (e: Exception) {
+            //TODO: Apply SAGA way
             //TODO: revertInventoryChanges(billingDTO)
             throw e
         }
-    }
-
-    private val retryTemplate = RetryTemplate().apply {
-        setRetryPolicy(
-            SimpleRetryPolicy(3, mapOf(
-                LockAcquisitionException::class.java to true
-            ))
-        )
-        setBackOffPolicy(ExponentialBackOffPolicy().apply {
-            initialInterval = 1000L
-            multiplier = 2.0
-            maxInterval = 10000L
-        })
     }
 
     fun customRetryPolicy(): RetryPolicy {

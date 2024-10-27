@@ -9,15 +9,13 @@ import org.springframework.data.jpa.repository.Query
 
 interface JpaBillingRepository : JpaRepository<BillingEntity, Long> {
 
-     @Query(
-         """
+    @Query(
+        """
             SELECT i FROM BillingEntity i
             WHERE i.companyId = :#{#filter.companyId}
             ORDER BY i.billingId desc 
             """
     )
     fun findAllByFilter(filter: Billing, pageable: Pageable): Page<BillingEntity>
-
-
 
 }

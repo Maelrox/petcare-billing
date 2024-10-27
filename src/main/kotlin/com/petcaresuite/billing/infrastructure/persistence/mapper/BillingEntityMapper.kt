@@ -9,7 +9,6 @@ import org.mapstruct.*
 @Mapper(componentModel = "spring", uses = [BillingDetailEntityMapper::class])
 interface BillingEntityMapper {
 
-    @Mapping(target = "billingDetails", ignore = true)
     fun toEntity(billing: Billing): BillingEntity
 
     @Mapping(target = "billingDetails", source = "billingEntity.billingDetails")
@@ -24,7 +23,8 @@ interface BillingEntityMapper {
                 billingDetailId = detailEntity.billingDetailId,
                 inventoryId = detailEntity.inventoryId,
                 quantity = detailEntity.quantity,
-                amount = detailEntity.amount
+                amount = detailEntity.amount,
+                consultationId = detailEntity.consultationId,
             )
         }
     }

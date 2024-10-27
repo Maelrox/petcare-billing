@@ -15,4 +15,6 @@ data class BillingDTO(
     var authorization: String?,
     var ownerId: Long?,
     var owner: OwnerDTO,
-    )
+    var trxId: String?
+) {
+}

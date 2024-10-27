@@ -13,7 +13,7 @@ data class BillingDetailEntity(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "billing_id", referencedColumnName = "billing_id")
-    val billing: BillingEntity?,
+    var billing: BillingEntity?,
 
     @Column(name = "quantity")
     val quantity: Int?,
@@ -21,6 +21,9 @@ data class BillingDetailEntity(
     @Column(name = "amount")
     val amount: BigDecimal?,
 
-    @Column(name = "inventory_id", nullable = false)
-    val inventoryId: Long
+    @Column(name = "inventory_id")
+    val inventoryId: Long?,
+
+    @Column(name = "consultation_id")
+    val consultationId: Long?
 )

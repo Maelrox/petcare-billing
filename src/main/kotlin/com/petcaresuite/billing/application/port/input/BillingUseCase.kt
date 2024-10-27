@@ -13,4 +13,5 @@ interface BillingUseCase {
     fun getAllByFilterPaginated(filterDTO: BillingFilterDTO, pageable: Pageable): Page<BillingDTO>
 
     fun processBilling(billingDTO: BillingDTO): ResponseDTO
+
 }

@@ -30,12 +30,12 @@ class BillingService(
 ) : BillingUseCase {
 
     override fun save(billingDTO: BillingDTO): ResponseDTO {
-        billingDTO.ownerId = billingDTO.owner.ownerId
+        billingDTO.ownerId = billingDTO.owner?.ownerId
         billingDTO.transactionDate = LocalDateTime.now().toString()
         billingDTO.transactionType = "BILL"
         billingDTO.trxId = UUID.randomUUID().toString()
         billingMessageProducerPort.sendBillingMessage(billingDTO)
-        return ResponseDTO(message = Responses.BILLING_CREATED, trxId = billingDTO.trxId)
+        return ResponseDTO(success = true, Responses.BILLING_CREATED, trx = billingDTO.trxId)
     }
 
     override fun update(billingDTO: BillingDTO): ResponseDTO? {
@@ -43,7 +43,7 @@ class BillingService(
         billingPersistencePort.findById(billingDTO.billingId!!)
         billingPersistencePort.update(billing)
         billingMessageProducerPort.sendBillingMessage(billingDTO)
-        return ResponseDTO(message = Responses.BILLING_UPDATED, trxId = billingDTO.trxId)
+        return ResponseDTO(success = true, message = Responses.BILLING_UPDATED, trx = billingDTO.trxId)
     }
 
     override fun getAllByFilterPaginated(filterDTO: BillingFilterDTO, pageable: Pageable): Page<BillingDTO> {
@@ -60,8 +60,8 @@ class BillingService(
             ?.map { billingDetail ->
                 InventoryDTO(
                     inventoryId = billingDetail.inventoryId,
-                    name = billingDetail.name,
-                    description = billingDetail.description,
+                    name = billingDetail.name!!,
+                    description = billingDetail.description!!,
                     quantity = billingDetail.quantity,
                     price = billingDetail.amount,
                     companyId = billingDTO.companyId
@@ -94,8 +94,9 @@ class BillingService(
             val billing = billingMapper.toDomain(billingDTO)
             billing.transactionDate = LocalDateTime.now()
             billing.transactionType = "BILL"
+            billing.paymentStatus = "PAID"
             billingPersistencePort.save(billing)
-            return ResponseDTO(message = Responses.BILLING_CREATED, trxId = billingDTO.trxId)
+            return ResponseDTO(success = true, message = Responses.BILLING_CREATED, trx = billingDTO.trxId)
         } catch (e: Exception) {
             //TODO: Apply SAGA way
             //TODO: revertInventoryChanges(billingDTO)

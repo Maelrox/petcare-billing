@@ -9,7 +9,8 @@ import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
-@RestController("/transaction")
+@RestController()
+@RequestMapping("/transaction")
 class TransactionController(
     private val transactionService: TransactionService
 ) {

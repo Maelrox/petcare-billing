@@ -5,11 +5,12 @@ import java.math.BigDecimal
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class BillingDetailDTO(
+    val billingDetailId: Long?,
     val inventoryId: Long?,
     val consultationId: Long?,
-    val name: String,
-    val description: String,
     val quantity: Int,
     val amount: BigDecimal,
     var companyId: Long?,
+    val name: String?,
+    val description: String?,
 )

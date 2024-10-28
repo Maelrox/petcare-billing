@@ -1,5 +1,3 @@
 package com.petcaresuite.billing.infrastructure.exception
 
-class InsufficientInventoryException(s: String) : Exception() {
-
-}
+class InsufficientInventoryException(s: String) : Exception(s)

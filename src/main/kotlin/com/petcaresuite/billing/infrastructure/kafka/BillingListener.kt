@@ -5,6 +5,8 @@ import com.petcaresuite.billing.application.dto.BillingDTO
 import com.petcaresuite.billing.application.service.BillingService
 import com.petcaresuite.billing.infrastructure.persistence.entity.BillingTransactionEntity
 import com.petcaresuite.billing.infrastructure.persistence.repository.JpaTransactionRepository
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
@@ -14,6 +16,7 @@ class BillingKafkaListener(
     private val objectMapper: ObjectMapper,
     private val jpaTransactionRepository: JpaTransactionRepository
 ) {
+    private val logger: Logger = LoggerFactory.getLogger(BillingMessageProducer::class.java)
 
     @KafkaListener(topics = ["billing-topic"], groupId = "billing-group")
     fun listen(billingJson: String) {
@@ -35,6 +38,7 @@ class BillingKafkaListener(
                 jpaTransactionRepository.save(transaction)
             }
         } catch (e: Exception) {
+            logger.error("Error processing message from billing-topic " + e.message)
             transaction?.status = "FAILED"
             transaction?.response = e.message
             transaction?.let { jpaTransactionRepository.save(it) }

@@ -6,10 +6,13 @@ import java.time.LocalDateTime
 data class Billing(
     val billingId: Long?,
     val totalAmount: BigDecimal?,
-    val paymentStatus: String?,
+    var paymentStatus: String?,
     var transactionType: String?,
     var transactionDate: LocalDateTime?,
     val billingDetails: List<BillingDetail>?,
     val companyId: Long?,
     var ownerId: Long?,
+    val identification: String?,
+    val initialDate: LocalDateTime?,
+    val finalDate: LocalDateTime?,
 )

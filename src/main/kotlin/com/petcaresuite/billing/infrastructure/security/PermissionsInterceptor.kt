@@ -1,6 +1,7 @@
 package com.petcaresuite.billing.infrastructure.security
 
 import com.petcaresuite.billing.infrastructure.rest.ManagementClient
+import feign.FeignException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.ObjectProvider
@@ -24,15 +25,22 @@ class PermissionsInterceptor(private val managementClientProvider: ObjectProvide
                 val managementClient = managementClientProvider.getIfAvailable()
                 val authHeader = request.getHeader("Authorization")
                 try {
-                    val response = managementClient!!.hasPermission(authHeader, module, action)
-                    if (!response.success!!) {
+                    val permissionResponse = managementClient!!.hasPermission(authHeader, module, action)
+                    if (!permissionResponse.success!!) {
                         throw IllegalAccessException("You don't have permission for the operation")
                     } else {
-                        request.setAttribute("companyId", response.message)
+                        request.setAttribute("companyId", permissionResponse.message)
                     }
+                } catch (e: FeignException) {
+                    val feignResponse = feign.Response.builder()
+                        .status(e.status())
+                        .reason(e.message)
+                        .request(e.request())
+                        .build()
+                    throw FeignException.errorStatus("FeignClientException", feignResponse)
                 } catch (e: Exception) {
                     throw IllegalAccessException(e.message)
-              }
+                }
             }
         }
         return true

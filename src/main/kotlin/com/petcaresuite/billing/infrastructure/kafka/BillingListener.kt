@@ -32,7 +32,12 @@ class BillingKafkaListener(
                 jpaTransactionRepository.save(it)
             }
             transaction?.let { jpaTransactionRepository.save(transaction) }
-            billingService.processBilling(billingDTO)
+            if (billingDTO.transactionType.equals("BILL")) {
+                billingService.processBilling(billingDTO)
+            }
+            if (billingDTO.transactionType.equals("CANCELLATION")) {
+                billingService.processCancellation(billingDTO)
+            }
             transaction?.status = "DONE"
             if (transaction != null) {
                 jpaTransactionRepository.save(transaction)

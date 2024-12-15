@@ -28,6 +28,10 @@ class BillingRepositoryAdapter(
         return billingMapper.toDomain(billingEntity)
     }
 
+    override fun findByIdAndCompanyId(billingId: Long, companyId: Long): Billing {
+        return billingMapper.toDomain(jpaBillingRepository.findByBillingIdAndCompanyId(billingId, companyId))
+    }
+
     override fun save(billing: Billing): Billing {
         val billingEntity = billingMapper.toEntity(billing)
         billingEntity.billingDetails.forEach { detail ->

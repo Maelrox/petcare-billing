@@ -8,6 +8,7 @@ import com.petcaresuite.billing.application.service.BillingService
 import com.petcaresuite.billing.application.service.messages.Responses
 import com.petcaresuite.billing.domain.model.Billing
 import com.petcaresuite.billing.domain.model.BillingDetail
+import com.petcaresuite.billing.domain.service.BillingDomainService
 import com.petcaresuite.billing.infrastructure.exception.InsufficientInventoryException
 import com.petcaresuite.billing.infrastructure.rest.InventoryClient
 import org.junit.jupiter.api.BeforeEach
@@ -38,6 +39,8 @@ class BillingServiceTest {
     private lateinit var inventoryClient: InventoryClient
 
     private lateinit var billingService: BillingService
+    private lateinit var billingDomainService: BillingDomainService
+
     private lateinit var mockBilling: Billing
     private lateinit var mockBillingDTO: BillingDTO
     private lateinit var mockBillingDetailDTO: BillingDetailDTO
@@ -101,8 +104,9 @@ class BillingServiceTest {
         billingService = BillingService(
             billingPersistencePort,
             billingMapper,
+            billingDomainService ,
             billingMessageProducerPort,
-            inventoryClient
+            inventoryClient,
         )
     }
 

@@ -28,4 +28,6 @@ interface JpaBillingRepository : JpaRepository<BillingEntity, Long> {
     )
     fun findAllByFilter(filter: Billing, pageable: Pageable): Page<BillingProjection>
 
+    fun findByBillingIdAndCompanyId(billingId: Long, companyId: Long): BillingEntity
+
 }

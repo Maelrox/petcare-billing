@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*
 class BillingController(private val billingUseCase: BillingUseCase) {
 
     @PostMapping()
-    @Permissions(Modules.INVENTORY, ModuleActions.CREATE)
+    @Permissions(Modules.BILLING, ModuleActions.CREATE)
     fun saveBilling(@RequestBody billingDTO: BillingDTO, request: HttpServletRequest): ResponseEntity<ResponseDTO> {
         val companyId  = request.getAttribute("companyId").toString().toLong()
         billingDTO.authorization = request.getHeader("Authorization")
@@ -28,6 +28,14 @@ class BillingController(private val billingUseCase: BillingUseCase) {
         val companyId  = request.getAttribute("companyId").toString().toLong()
         billingDTO.companyId = companyId
         return ResponseEntity.ok(billingUseCase.update(billingDTO))
+    }
+
+    @DeleteMapping("/{id}")
+    @Permissions(Modules.BILLING, ModuleActions.DELETE)
+    fun saveBilling(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<ResponseDTO> {
+        val companyId  = request.getAttribute("companyId").toString().toLong()
+        val authorization = request.getHeader("Authorization")
+        return ResponseEntity.ok(billingUseCase.cancel(id, companyId, authorization))
     }
 
     @GetMapping("/search")

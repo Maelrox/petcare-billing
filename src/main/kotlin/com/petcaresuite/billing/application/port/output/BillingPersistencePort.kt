@@ -14,4 +14,6 @@ interface BillingPersistencePort {
 
      fun update(billing: Billing): Billing
 
+     fun findByIdAndCompanyId(billingId: Long, companyId: Long): Billing
+
 }

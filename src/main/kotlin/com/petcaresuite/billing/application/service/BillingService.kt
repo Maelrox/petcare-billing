@@ -6,6 +6,7 @@ import com.petcaresuite.billing.application.port.input.BillingUseCase
 import com.petcaresuite.billing.application.port.output.BillingPersistencePort
 import com.petcaresuite.billing.application.port.output.BillingMessageProducerPort
 import com.petcaresuite.billing.application.service.messages.Responses
+import com.petcaresuite.billing.domain.service.BillingDomainService
 import com.petcaresuite.billing.infrastructure.exception.InsufficientInventoryException
 import com.petcaresuite.billing.infrastructure.exception.LockAcquisitionException
 import com.petcaresuite.billing.infrastructure.rest.InventoryClient
@@ -18,6 +19,7 @@ import org.springframework.retry.policy.SimpleRetryPolicy
 import org.springframework.retry.support.RetryTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 
@@ -25,9 +27,14 @@ import java.util.*
 class BillingService(
     private val billingPersistencePort: BillingPersistencePort,
     private val billingMapper: BillingMapper,
+    private val billingDomainService: BillingDomainService,
     private val billingMessageProducerPort: BillingMessageProducerPort,
     private val inventoryClient: InventoryClient
 ) : BillingUseCase {
+
+    val retryTemplate = RetryTemplate().apply {
+        setRetryPolicy(customRetryPolicy())
+    }
 
     override fun save(billingDTO: BillingDTO): ResponseDTO {
         billingDTO.ownerId = billingDTO.owner?.ownerId
@@ -52,25 +59,51 @@ class BillingService(
             .map { billingMapper.toDTO(it) }
     }
 
-
     @Transactional
     override fun processBilling(billingDTO: BillingDTO): ResponseDTO {
-        val inventories = billingDTO.billingDetails
-            ?.filter { billingDetail -> billingDetail.inventoryId != null }
-            ?.map { billingDetail ->
-                InventoryDTO(
-                    inventoryId = billingDetail.inventoryId,
-                    name = billingDetail.name!!,
-                    description = billingDetail.description!!,
-                    quantity = billingDetail.quantity,
-                    price = billingDetail.amount,
-                    companyId = billingDTO.companyId
-                )
-            } ?: emptyList()
-
-        val retryTemplate = RetryTemplate().apply {
-            setRetryPolicy(customRetryPolicy())
+        val inventory = generateInventories(billingDTO, false)
+        updateInventory(inventory, billingDTO)
+        try {
+            val billing = billingMapper.toDomain(billingDTO)
+            billing.transactionDate = LocalDateTime.now()
+            billing.paymentStatus = "PAID"
+            billingPersistencePort.save(billing)
+            return ResponseDTO(success = true, message = Responses.BILLING_CREATED, trx = billingDTO.trxId)
+        } catch (e: Exception) {
+            val inventoryRollback = generateInventories(billingDTO, true)
+            updateInventory(inventoryRollback, billingDTO)
+            throw e
         }
+    }
+
+    override fun cancel(billingId: Long, companyId: Long, authorization: String): ResponseDTO {
+        val billing = billingPersistencePort.findByIdAndCompanyId(billingId, companyId)
+        billingDomainService.validateCancellation(billing)
+        val billingDTO = billingMapper.toDTO(billing)
+        billingDTO.authorization = authorization
+        billingDTO.transactionDate = LocalDateTime.now().toString()
+        billingDTO.transactionType = "CANCELLATION"
+        billingDTO.trxId = UUID.randomUUID().toString()
+        billingMessageProducerPort.sendBillingMessage(billingDTO)
+        return ResponseDTO(success = true, message = Responses.BILLING_CANCELLED, trx = billingDTO.trxId)
+    }
+
+    override fun processCancellation(billingDTO: BillingDTO): ResponseDTO {
+        val billing = billingMapper.toDomain(billingDTO)
+        billing.billingDetails
+            ?.filter { billingDetail -> billingDetail.consultationId != null }
+            ?.forEach { it.consultationId = null }
+
+        val inventory = generateInventories(billingDTO, true)
+        updateInventory(inventory, billingDTO)
+
+        billing.transactionDate = LocalDateTime.now()
+        billing.paymentStatus = "REVERTED"
+        billingPersistencePort.save(billing)
+        return ResponseDTO(success = true, message = Responses.BILLING_CANCELLED, trx = billingDTO.trxId)
+    }
+
+    fun updateInventory(inventories: List<InventoryDTO>, billingDTO: BillingDTO) {
         inventories.isNotEmpty().let {
             val inventoryResponse = retryTemplate.execute<ResponseDTO, Exception> {
                 try {
@@ -90,18 +123,25 @@ class BillingService(
                 throw RuntimeException("Failed to update inventory: ${inventoryResponse.message}")
             }
         }
-        try {
-            val billing = billingMapper.toDomain(billingDTO)
-            billing.transactionDate = LocalDateTime.now()
-            billing.transactionType = "BILL"
-            billing.paymentStatus = "PAID"
-            billingPersistencePort.save(billing)
-            return ResponseDTO(success = true, message = Responses.BILLING_CREATED, trx = billingDTO.trxId)
-        } catch (e: Exception) {
-            //TODO: Apply SAGA way
-            //TODO: revertInventoryChanges(billingDTO)
-            throw e
-        }
+    }
+
+    fun generateInventories(billingDTO: BillingDTO, minus: Boolean): List<InventoryDTO> {
+        return billingDTO.billingDetails
+            ?.filter { billingDetail -> billingDetail.inventoryId != null }
+            ?.map { billingDetail ->
+                InventoryDTO(
+                    inventoryId = billingDetail.inventoryId,
+                    name = billingDetail.name ?: "Unnamed Item",
+                    description = billingDetail.description ?: "No description",
+                    quantity = if (minus) {
+                        ((billingDetail.quantity) * -1)
+                    } else {
+                        billingDetail.quantity
+                    },
+                    price = billingDetail.amount,
+                    companyId = billingDTO.companyId
+                )
+            } ?: emptyList()
     }
 
     fun customRetryPolicy(): RetryPolicy {

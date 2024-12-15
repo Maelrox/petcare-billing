@@ -13,4 +13,7 @@ object Responses {
     const val INVENTORY_UPDATED = "Inventory Updated"
     const val BILLING_CREATED = "Billing Created"
     const val BILLING_UPDATED = "Billing Updated"
+    const val BILLING_CANCELLED = "Billing Cancelled"
+    const val BILLING_ALREADY_CANCELLED = "Payment status is already REVERTED"
+
 }

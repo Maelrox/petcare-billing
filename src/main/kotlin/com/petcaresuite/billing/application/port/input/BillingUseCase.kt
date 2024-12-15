@@ -14,4 +14,9 @@ interface BillingUseCase {
 
     fun processBilling(billingDTO: BillingDTO): ResponseDTO
 
+    fun cancel(billingId: Long, companyId: Long, authorization: String): ResponseDTO
+
+    fun processCancellation(billingDTO: BillingDTO): ResponseDTO
+
+
 }

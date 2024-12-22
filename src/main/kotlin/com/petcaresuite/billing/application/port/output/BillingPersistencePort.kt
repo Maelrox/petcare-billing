@@ -16,4 +16,10 @@ interface BillingPersistencePort {
 
      fun findByIdAndCompanyId(billingId: Long, companyId: Long): Billing
 
+     fun updateAppointment(appointmentId: Long, status: String)
+
+     fun updateConsultation(consultationId: Long, status: String)
+
+     fun getAppointments(consultationId: Long): List<Long>
+
 }

@@ -1,5 +1,6 @@
 package com.petcaresuite.billing.domain.service
 
+import com.petcaresuite.billing.application.dto.BillingDTO
 import com.petcaresuite.billing.application.dto.InventoryDTO
 import com.petcaresuite.billing.application.dto.ResponseDTO
 import com.petcaresuite.billing.application.port.output.BillingPersistencePort
@@ -21,6 +22,20 @@ class BillingDomainService(private val billingPersistencePort: BillingPersistenc
     fun validateCancellation(billing: Billing) {
         if (billing.paymentStatus.equals("REVERTED")) {
             throw IllegalArgumentException(Responses.BILLING_ALREADY_CANCELLED);
+        }
+    }
+
+    fun payConsultations(billingDTO: BillingDTO) {
+        val appointmentsToPay = billingDTO.billingDetails
+            ?.filter { it.consultationId != null }
+            ?.map { it.consultationId }
+
+        appointmentsToPay?.forEach { consultationId ->
+            billingPersistencePort.updateConsultation(consultationId!!, "PAID")
+            val appointmentIds = billingPersistencePort.getAppointments(consultationId)
+            appointmentIds.forEach { appointmentId ->
+                billingPersistencePort.updateAppointment(appointmentId, "PAID")
+            }
         }
     }
 

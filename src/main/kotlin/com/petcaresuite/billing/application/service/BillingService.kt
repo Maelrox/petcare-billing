@@ -63,6 +63,7 @@ class BillingService(
     override fun processBilling(billingDTO: BillingDTO): ResponseDTO {
         val inventory = generateInventories(billingDTO, false)
         updateInventory(inventory, billingDTO)
+        billingDomainService.payConsultations(billingDTO)
         try {
             val billing = billingMapper.toDomain(billingDTO)
             billing.transactionDate = LocalDateTime.now()
@@ -152,4 +153,5 @@ class BillingService(
         )
         return SimpleRetryPolicy(3, policyMap)
     }
+
 }

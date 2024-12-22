@@ -6,6 +6,7 @@ import com.petcaresuite.billing.infrastructure.persistence.entity.BillingProject
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 
 interface JpaBillingRepository : JpaRepository<BillingEntity, Long> {
@@ -29,5 +30,22 @@ interface JpaBillingRepository : JpaRepository<BillingEntity, Long> {
     fun findAllByFilter(filter: Billing, pageable: Pageable): Page<BillingProjection>
 
     fun findByBillingIdAndCompanyId(billingId: Long, companyId: Long): BillingEntity
+
+    @Modifying
+    @Query ("""
+        UPDATE appointments set status = :#{#status} where appointment_id = :#{#appointmentId}
+    """, nativeQuery=true)
+    fun updateAppointmentStatus(appointmentId: Long, status: String)
+
+    @Modifying
+    @Query ("""
+        UPDATE consultations set status = :#{#status} where consultation_id = :#{#consultationId}
+    """, nativeQuery=true)
+    fun updateConsultationStatus(consultationId: Long, status: String)
+
+    @Query ("""
+        SELECT appointment_id FROM consultations where consultation_id = :#{#consultationId}
+    """, nativeQuery=true)
+    fun getAppointmentsByConsultation(consultationId: Long): List<Long>
 
 }

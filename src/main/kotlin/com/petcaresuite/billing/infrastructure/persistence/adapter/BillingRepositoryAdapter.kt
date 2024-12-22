@@ -32,6 +32,18 @@ class BillingRepositoryAdapter(
         return billingMapper.toDomain(jpaBillingRepository.findByBillingIdAndCompanyId(billingId, companyId))
     }
 
+    override fun updateAppointment(appointmentId: Long, status: String) {
+        jpaBillingRepository.updateAppointmentStatus(appointmentId, status)
+    }
+
+    override fun updateConsultation(consultationId: Long, status: String) {
+        jpaBillingRepository.updateConsultationStatus(consultationId, status)
+    }
+
+    override fun getAppointments(consultationId: Long): List<Long> {
+        return jpaBillingRepository.getAppointmentsByConsultation(consultationId)
+    }
+
     override fun save(billing: Billing): Billing {
         val billingEntity = billingMapper.toEntity(billing)
         billingEntity.billingDetails.forEach { detail ->

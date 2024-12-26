@@ -18,5 +18,6 @@ interface BillingUseCase {
 
     fun processCancellation(billingDTO: BillingDTO): ResponseDTO
 
+    fun generateInvoice(billingId: Long, companyId: Long): ByteArray
 
 }

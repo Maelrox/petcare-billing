@@ -39,6 +39,8 @@ dependencies {
 	implementation("jakarta.validation:jakarta.validation-api:3.1.0")
 	implementation("com.google.guava:guava:33.2.1-jre")
 	implementation("org.springframework.kafka:spring-kafka:3.2.4")
+	implementation("net.sf.jasperreports:jasperreports:7.0.1")
+	implementation("net.sf.jasperreports:jasperreports-pdf:7.0.1")
 
 	kapt ("org.mapstruct:mapstruct-processor:1.4.2.Final")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")

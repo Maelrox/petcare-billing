@@ -61,4 +61,15 @@ class BillingController(private val billingUseCase: BillingUseCase) {
         return ResponseEntity.ok(paginatedResponse)
     }
 
+    @GetMapping("/invoice/{billingId}")
+    @Permissions(Modules.BILLING, ModuleActions.VIEW)
+    fun getReport(@PathVariable billingId: Long, request: HttpServletRequest): ResponseEntity<ByteArray> {
+        val companyId  = request.getAttribute("companyId").toString().toLong()
+        val pdfReport = billingUseCase.generateInvoice(billingId, companyId)
+        return ResponseEntity.ok()
+            //.contentType("application/pdf")
+            //.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=report.pdf")
+            .body(pdfReport)
+    }
+
 }

@@ -104,6 +104,10 @@ class BillingService(
         return ResponseDTO(success = true, message = Responses.BILLING_CANCELLED, trx = billingDTO.trxId)
     }
 
+    override fun generateInvoice(billingId: Long, companyId: Long): ByteArray {
+        return billingDomainService.generateInvoice(billingId, companyId)
+    }
+
     fun updateInventory(inventories: List<InventoryDTO>, billingDTO: BillingDTO) {
         inventories.isNotEmpty().let {
             val inventoryResponse = retryTemplate.execute<ResponseDTO, Exception> {

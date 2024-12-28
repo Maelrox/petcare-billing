@@ -1,27 +1,21 @@
 package com.petcaresuite.billing.domain.service
 
 import com.petcaresuite.billing.application.dto.BillingDTO
-import com.petcaresuite.billing.application.dto.InventoryDTO
 import com.petcaresuite.billing.application.dto.InvoiceRowDTO
-import com.petcaresuite.billing.application.dto.ResponseDTO
 import com.petcaresuite.billing.application.port.output.BillingPersistencePort
 import com.petcaresuite.billing.application.port.output.CompanyPersistencePort
 import com.petcaresuite.billing.application.port.output.OwnerPersistencePort
 import com.petcaresuite.billing.application.service.messages.Responses
 import com.petcaresuite.billing.domain.model.Billing
-import com.petcaresuite.billing.domain.model.BillingDetail
-import com.petcaresuite.billing.infrastructure.exception.InsufficientInventoryException
-import com.petcaresuite.billing.infrastructure.exception.LockAcquisitionException
-import feign.FeignException
+import com.petcaresuite.billing.domain.model.Consultation
+import com.petcaresuite.inventory.domain.model.Inventory
 import net.sf.jasperreports.engine.JREmptyDataSource
 import net.sf.jasperreports.engine.JasperCompileManager
 import net.sf.jasperreports.engine.JasperExportManager
 import net.sf.jasperreports.engine.JasperFillManager
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource
 import org.springframework.core.io.ClassPathResource
-import org.springframework.retry.support.RetryTemplate
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
 
 @Service
 class BillingDomainService(
@@ -44,8 +38,8 @@ class BillingDomainService(
 
     fun payConsultations(billingDTO: BillingDTO) {
         val appointmentsToPay = billingDTO.billingDetails
-            ?.filter { it.consultationId != null }
-            ?.map { it.consultationId }
+            ?.filter { it.consultation != null }
+            ?.map { it.consultation!!.consultationId }
 
         appointmentsToPay?.forEach { consultationId ->
             billingPersistencePort.updateConsultation(consultationId!!, "PAID")
@@ -77,14 +71,17 @@ class BillingDomainService(
         parameters["ownerIdentificationType"] = owner.identificationType?.name ?: ""
         parameters["ownerPhone"] = owner.phone ?: ""
 
-        //TODO: Get inventory item name
-        //TODO: Get service item name
-
         // Details table
         val invoiceDetails = mutableListOf<InvoiceRowDTO>()
         invoice.billingDetails!!.forEach { billingDetail ->
+            val detail = billingDetail.consultation ?: billingDetail.inventory
+            val detailName = when (detail) {
+                is Consultation -> detail.service!!.name
+                is Inventory -> detail.name
+                else -> "Unknown Detail"
+            }
             invoiceDetails.add(InvoiceRowDTO(
-                billingDetail.billingDetailId.toString(),
+                detailName ?: "Unknown detail",
                 billingDetail.quantity.toString(),
                 billingDetail.amount!!,
                 billingDetail.amount.multiply(billingDetail.quantity!!.toBigDecimal())

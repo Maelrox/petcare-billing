@@ -1,14 +1,17 @@
 package com.petcaresuite.billing.infrastructure.kafka
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.petcaresuite.billing.application.dto.BillingDTO
 import com.petcaresuite.billing.application.port.output.BillingMessageProducerPort
 import com.petcaresuite.billing.infrastructure.persistence.entity.BillingTransactionEntity
 import com.petcaresuite.billing.infrastructure.persistence.repository.JpaTransactionRepository
+import jakarta.annotation.PostConstruct
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
+
 
 @Component
 class BillingMessageProducer(
@@ -18,6 +21,11 @@ class BillingMessageProducer(
     private val logger: Logger = LoggerFactory.getLogger(BillingMessageProducer::class.java)
 
     private val objectMapper = ObjectMapper()
+
+    @PostConstruct
+    fun init() {
+        objectMapper.registerModule(JavaTimeModule())
+    }
 
     override fun sendBillingMessage(billingDTO: BillingDTO) {
         try {
@@ -29,6 +37,7 @@ class BillingMessageProducer(
                 companyId = billingDTO.companyId,
             )
             jpaTransactionRepository.save(transaction)
+
             val jsonString = objectMapper.writeValueAsString(billingDTO)
             kafkaTemplate.send("billing-topic", jsonString)
         } catch (e: Exception) {

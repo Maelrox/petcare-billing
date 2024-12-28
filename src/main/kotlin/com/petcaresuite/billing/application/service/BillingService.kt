@@ -92,8 +92,8 @@ class BillingService(
     override fun processCancellation(billingDTO: BillingDTO): ResponseDTO {
         val billing = billingMapper.toDomain(billingDTO)
         billing.billingDetails
-            ?.filter { billingDetail -> billingDetail.consultationId != null }
-            ?.forEach { it.consultationId = null }
+            ?.filter { billingDetail -> billingDetail.consultation!!.consultationId != null }
+            ?.forEach { it.consultation = null }
 
         val inventory = generateInventories(billingDTO, true)
         updateInventory(inventory, billingDTO)
@@ -132,10 +132,10 @@ class BillingService(
 
     fun generateInventories(billingDTO: BillingDTO, minus: Boolean): List<InventoryDTO> {
         return billingDTO.billingDetails
-            ?.filter { billingDetail -> billingDetail.inventoryId != null }
+            ?.filter { billingDetail -> billingDetail.inventory != null }
             ?.map { billingDetail ->
                 InventoryDTO(
-                    inventoryId = billingDetail.inventoryId,
+                    inventoryId = billingDetail.inventory!!.inventoryId,
                     name = billingDetail.name ?: "Unnamed Item",
                     description = billingDetail.description ?: "No description",
                     quantity = if (minus) {

@@ -6,8 +6,8 @@ import java.math.BigDecimal
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class BillingDetailDTO(
     val billingDetailId: Long?,
-    val inventoryId: Long?,
-    var consultationId: Long?,
+    val inventory: InventoryDTO?,
+    var consultation: ConsultationDTO?,
     val quantity: Int,
     val amount: BigDecimal,
     var companyId: Long?,

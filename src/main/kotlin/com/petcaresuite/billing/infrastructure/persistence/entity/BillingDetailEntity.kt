@@ -21,9 +21,12 @@ data class BillingDetailEntity(
     @Column(name = "amount")
     val amount: BigDecimal?,
 
-    @Column(name = "inventory_id")
-    val inventoryId: Long?,
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inventory_id")
+    val inventory: InventoryEntity?,
 
-    @Column(name = "consultation_id")
-    val consultationId: Long?
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "consultation_id")
+    val consultation: ConsultationEntity?
+
 )

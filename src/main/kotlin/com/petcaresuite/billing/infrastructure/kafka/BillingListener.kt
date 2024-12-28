@@ -39,14 +39,15 @@ class BillingKafkaListener(
                 billingService.processCancellation(billingDTO)
             }
             transaction?.status = "DONE"
-            if (transaction != null) {
-                jpaTransactionRepository.save(transaction)
-            }
         } catch (e: Exception) {
             logger.error("Error processing message from billing-topic " + e.message)
             transaction?.status = "FAILED"
             transaction?.response = e.message
             transaction?.let { jpaTransactionRepository.save(it) }
+        } finally {
+            if (transaction != null) {
+                jpaTransactionRepository.save(transaction)
+            }
         }
     }
 
